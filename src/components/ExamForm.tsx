@@ -52,7 +52,7 @@ export const ExamForm = () => {
   const [preferredDates, setPreferredDates] = useState<Date[]>([]);
 
   const addPreferredDate = (date: Date | undefined) => {
-    if (date && preferredDates.length < 3 && !preferredDates.some(d => d.getTime() === date.getTime())) {
+    if (date && !preferredDates.some(d => d.getTime() === date.getTime())) {
       setPreferredDates([...preferredDates, date]);
     }
   };
@@ -168,7 +168,7 @@ export const ExamForm = () => {
       </div>
 
       <div className="space-y-3">
-        <Label>Tercih Edilen Tarihler (En az 3, en fazla 3)</Label>
+        <Label>Tercih Edilen Tarihler (En az 3 tarih seçin)</Label>
         <div className="flex flex-wrap gap-2">
           {preferredDates.map((date, index) => (
             <div key={index} className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-md">
@@ -186,36 +186,34 @@ export const ExamForm = () => {
           ))}
         </div>
         
-        {preferredDates.length < 3 && (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className={cn(
-                  "justify-start text-left font-normal",
-                  "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                Tarih ekle ({preferredDates.length}/3)
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                onSelect={addPreferredDate}
-                disabled={(date) => date < new Date()}
-                initialFocus
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        )}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className={cn(
+                "justify-start text-left font-normal",
+                "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              Tarih ekle ({preferredDates.length} seçili)
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              onSelect={addPreferredDate}
+              disabled={(date) => date < new Date()}
+              initialFocus
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
         
         {preferredDates.length < 3 && (
           <p className="text-sm text-red-600">
-            En az 3 tercih edilen tarih seçmelisiniz. ({preferredDates.length}/3)
+            En az 3 tercih edilen tarih seçmelisiniz. (Şu an: {preferredDates.length})
           </p>
         )}
       </div>
