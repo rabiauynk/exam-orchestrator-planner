@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Navbar } from "@/components/Navbar";
 import { ExamSchedule } from "@/components/ExamSchedule";
 import { ExportPanel } from "@/components/ExportPanel";
+import { ExamWeekSettings } from "@/components/ExamWeekSettings";
 import { Calendar, Download, Settings, BarChart3 } from "lucide-react";
 
 const Admin = () => {
@@ -20,7 +21,7 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="schedule" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-96">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
             <TabsTrigger value="schedule" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Planlama
@@ -28,6 +29,10 @@ const Admin = () => {
             <TabsTrigger value="export" className="flex items-center gap-2">
               <Download className="h-4 w-4" />
               Dışa Aktar
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Ayarlar
             </TabsTrigger>
             <TabsTrigger value="stats" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
@@ -59,6 +64,20 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <ExportPanel />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sistem Ayarları</CardTitle>
+                <CardDescription>
+                  Sınav planlama sistemi için genel ayarları yapın
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ExamWeekSettings />
               </CardContent>
             </Card>
           </TabsContent>

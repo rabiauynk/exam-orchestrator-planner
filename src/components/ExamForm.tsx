@@ -46,6 +46,7 @@ const coursesByDepartment = {
 export const ExamForm = () => {
   const [courseName, setCourseName] = useState("");
   const [className, setClassName] = useState("");
+  const [instructor, setInstructor] = useState("");
   const [studentCount, setStudentCount] = useState("");
   const [duration, setDuration] = useState("");
   const [needsComputer, setNeedsComputer] = useState(false);
@@ -78,6 +79,7 @@ export const ExamForm = () => {
     console.log({
       courseName,
       className,
+      instructor,
       studentCount: parseInt(studentCount),
       duration: parseInt(duration),
       needsComputer,
@@ -87,6 +89,7 @@ export const ExamForm = () => {
     // Form temizle
     setCourseName("");
     setClassName("");
+    setInstructor("");
     setStudentCount("");
     setDuration("");
     setNeedsComputer(false);
@@ -128,6 +131,18 @@ export const ExamForm = () => {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="instructor">Ders Hocası</Label>
+          <Input
+            id="instructor"
+            type="text"
+            value={instructor}
+            onChange={(e) => setInstructor(e.target.value)}
+            placeholder="Hoca adını girin"
+            required
+          />
         </div>
 
         <div className="space-y-2">
