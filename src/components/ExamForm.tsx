@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
@@ -12,6 +11,38 @@ import { format } from "date-fns";
 import { CalendarIcon, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Bölümlere göre dersler
+const coursesByDepartment = {
+  "1": [
+    "Matematik I",
+    "Fizik I", 
+    "Kimya I",
+    "Mühendislik Temelleri",
+    "Türk Dili I"
+  ],
+  "2": [
+    "Matematik II",
+    "Fizik II",
+    "Kimya II", 
+    "Mühendislik Matematik I",
+    "Türk Dili II"
+  ],
+  "3": [
+    "Diferansiyel Denklemler",
+    "Termodinamik",
+    "Malzeme Bilimi",
+    "Mühendislik Matematik II",
+    "İstatistik"
+  ],
+  "4": [
+    "Bitirme Projesi I",
+    "Bitirme Projesi II",
+    "Endüstriyel Uygulamalar",
+    "Proje Yönetimi",
+    "Meslek Etiği"
+  ]
+};
+
 export const ExamForm = () => {
   const [courseName, setCourseName] = useState("");
   const [className, setClassName] = useState("");
@@ -19,7 +50,6 @@ export const ExamForm = () => {
   const [duration, setDuration] = useState("");
   const [needsComputer, setNeedsComputer] = useState(false);
   const [preferredDates, setPreferredDates] = useState<Date[]>([]);
-  const [notes, setNotes] = useState("");
 
   const addPreferredDate = (date: Date | undefined) => {
     if (date && preferredDates.length < 3 && !preferredDates.some(d => d.getTime() === date.getTime())) {
@@ -31,8 +61,19 @@ export const ExamForm = () => {
     setPreferredDates(preferredDates.filter((_, i) => i !== index));
   };
 
+  const handleClassChange = (value: string) => {
+    setClassName(value);
+    setCourseName(""); // Sınıf değiştiğinde ders seçimini sıfırla
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (preferredDates.length < 3) {
+      alert("En az 3 tercih edilen tarih seçmelisiniz!");
+      return;
+    }
+    
     // Form verilerini işle
     console.log({
       courseName,
@@ -40,8 +81,7 @@ export const ExamForm = () => {
       studentCount: parseInt(studentCount),
       duration: parseInt(duration),
       needsComputer,
-      preferredDates,
-      notes
+      preferredDates
     });
     
     // Form temizle
@@ -51,26 +91,17 @@ export const ExamForm = () => {
     setDuration("");
     setNeedsComputer(false);
     setPreferredDates([]);
-    setNotes("");
   };
+
+  // Seçilen sınıfa göre dersleri getir
+  const availableCourses = className ? coursesByDepartment[className as keyof typeof coursesByDepartment] || [] : [];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="courseName">Ders Adı</Label>
-          <Input
-            id="courseName"
-            value={courseName}
-            onChange={(e) => setCourseName(e.target.value)}
-            placeholder="Ders adını girin"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="className">Sınıf</Label>
-          <Select value={className} onValueChange={setClassName}>
+          <Select value={className} onValueChange={handleClassChange}>
             <SelectTrigger>
               <SelectValue placeholder="Sınıf seçin" />
             </SelectTrigger>
@@ -79,6 +110,22 @@ export const ExamForm = () => {
               <SelectItem value="2">2. Sınıf</SelectItem>
               <SelectItem value="3">3. Sınıf</SelectItem>
               <SelectItem value="4">4. Sınıf</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="courseName">Ders Adı</Label>
+          <Select value={courseName} onValueChange={setCourseName} disabled={!className}>
+            <SelectTrigger>
+              <SelectValue placeholder={className ? "Ders seçin" : "Önce sınıf seçin"} />
+            </SelectTrigger>
+            <SelectContent>
+              {availableCourses.map((course) => (
+                <SelectItem key={course} value={course}>
+                  {course}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -121,7 +168,7 @@ export const ExamForm = () => {
       </div>
 
       <div className="space-y-3">
-        <Label>Tercih Edilen Tarihler (En fazla 3)</Label>
+        <Label>Tercih Edilen Tarihler (En az 3, en fazla 3)</Label>
         <div className="flex flex-wrap gap-2">
           {preferredDates.map((date, index) => (
             <div key={index} className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-md">
@@ -151,7 +198,7 @@ export const ExamForm = () => {
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                Tarih ekle
+                Tarih ekle ({preferredDates.length}/3)
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -165,20 +212,15 @@ export const ExamForm = () => {
             </PopoverContent>
           </Popover>
         )}
+        
+        {preferredDates.length < 3 && (
+          <p className="text-sm text-red-600">
+            En az 3 tercih edilen tarih seçmelisiniz. ({preferredDates.length}/3)
+          </p>
+        )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="notes">Notlar (İsteğe bağlı)</Label>
-        <Textarea
-          id="notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Ek notlar..."
-          className="min-h-[80px]"
-        />
-      </div>
-
-      <Button type="submit" className="w-full">
+      <Button type="submit" className="w-full" disabled={preferredDates.length < 3}>
         <Plus className="mr-2 h-4 w-4" />
         Sınav Ekle
       </Button>
