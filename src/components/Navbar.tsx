@@ -1,13 +1,30 @@
 
-import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Home, Shield, LogOut } from "lucide-react";
+import { GraduationCap, Home, LogOut, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [departmentName, setDepartmentName] = useState("Bölüm");
+
+  // localStorage'dan seçilen bölümü oku
+  useEffect(() => {
+    const savedDepartment = localStorage.getItem('selectedDepartment');
+    if (savedDepartment) {
+      try {
+        const dept = JSON.parse(savedDepartment);
+        setDepartmentName(dept.name);
+      } catch (error) {
+        console.error('Error parsing saved department:', error);
+      }
+    }
+  }, []);
 
   const handleLogout = () => {
+    // localStorage'ı temizle
+    localStorage.removeItem('selectedDepartment');
     navigate("/");
   };
 
@@ -20,7 +37,7 @@ export const Navbar = () => {
               <GraduationCap className="h-8 w-8 text-blue-600" />
               <span className="text-xl font-bold text-gray-900">Sınav Planlama</span>
             </div>
-            
+
             <div className="hidden md:flex space-x-4">
               <Button
                 variant={location.pathname === "/dashboard" ? "default" : "ghost"}
@@ -43,7 +60,7 @@ export const Navbar = () => {
 
           <div className="flex items-center space-x-4">
             <span className="text-sm text-gray-600 hidden md:block">
-              Bilgisayar Mühendisliği
+              {departmentName}
             </span>
             <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
               <LogOut className="h-4 w-4" />

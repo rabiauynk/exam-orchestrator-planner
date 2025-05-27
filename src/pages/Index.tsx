@@ -1,29 +1,56 @@
-
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Calendar, Users } from "lucide-react";
+import { apiClient, type Department } from "@/lib/api";
+import { Calendar, GraduationCap, Loader2, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const Index = () => {
   const [department, setDepartment] = useState("");
   const [password, setPassword] = useState("");
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const departments = [
-    "Bilgisayar Mühendisliği",
-    "Elektrik-Elektronik Mühendisliği", 
-    "Makine Mühendisliği",
-    "İnşaat Mühendisliği",
-    "Endüstri Mühendisliği"
-  ];
+  // Load departments on component mount
+  useEffect(() => {
+    const loadDepartments = async () => {
+      try {
+        setLoading(true);
+        const response = await apiClient.getDepartments();
+        if (response.success && response.data) {
+          setDepartments(response.data);
+        } else {
+          toast.error('Bölümler yüklenirken hata oluştu');
+        }
+      } catch (error) {
+        console.error('Error loading departments:', error);
+        toast.error('Bölümler yüklenirken hata oluştu');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDepartments();
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (department && password) {
+      // Seçilen bölümü localStorage'a kaydet
+      const selectedDept = departments.find(d => d.id.toString() === department);
+      if (selectedDept) {
+        localStorage.setItem('selectedDepartment', JSON.stringify({
+          id: selectedDept.id,
+          name: selectedDept.name,
+          code: selectedDept.code
+        }));
+      }
+
       // Basit giriş kontrolü - gerçek uygulamada Supabase auth kullanılacak
       navigate("/dashboard");
     }
@@ -53,18 +80,26 @@ const Index = () => {
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="department">Bölüm</Label>
-                <Select value={department} onValueChange={setDepartment}>
+                <Select value={department} onValueChange={setDepartment} disabled={loading}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Bölümünüzü seçin" />
+                    <SelectValue placeholder={
+                      loading ? "Bölümler yükleniyor..." : "Bölümünüzü seçin"
+                    } />
                   </SelectTrigger>
                   <SelectContent>
                     {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
+                      <SelectItem key={dept.id} value={dept.id.toString()}>
+                        {dept.name} ({dept.code})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {loading && (
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Bölümler yükleniyor...
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -79,8 +114,15 @@ const Index = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={!department || !password}>
-                Giriş Yap
+              <Button type="submit" className="w-full" disabled={!department || !password || loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Yükleniyor...
+                  </>
+                ) : (
+                  'Giriş Yap'
+                )}
               </Button>
             </form>
           </CardContent>
