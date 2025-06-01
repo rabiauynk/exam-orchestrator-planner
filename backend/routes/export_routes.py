@@ -142,10 +142,20 @@ def preview_department_export(department_id):
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
-        # Build query
+        # Get the latest session ID for this department
+        latest_session = db.session.query(Exam.exam_session_id).filter(
+            Exam.department_id == department_id,
+            Exam.exam_session_id.isnot(None)
+        ).order_by(Exam.created_at.desc()).first()
+
+        # Build query from latest session only
         query = db.session.query(ExamSchedule).join(Exam).filter(
             Exam.department_id == department_id
         )
+
+        # Filter by latest session if exists
+        if latest_session and latest_session[0]:
+            query = query.filter(Exam.exam_session_id == latest_session[0])
         
         if start_date:
             from datetime import datetime

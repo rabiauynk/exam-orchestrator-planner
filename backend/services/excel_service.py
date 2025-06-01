@@ -41,7 +41,7 @@ class ExcelService:
             (4, 120): 'very_hard' # 4th class, 120 min
         }
     
-    def process_excel_file(self, file_path: str, department_id: int) -> Dict[str, Any]:
+    def process_excel_file(self, file_path: str, department_id: int, session_id: str = None) -> Dict[str, Any]:
         """Process Excel file and create exams"""
         try:
             # Read Excel file
@@ -65,7 +65,7 @@ class ExcelService:
             for index, row in df.iterrows():
                 try:
                     print(f"DEBUG: Processing row {index + 1}: {dict(row)}")
-                    exam_data = self._process_row(row, department_id, index + 1)
+                    exam_data = self._process_row(row, department_id, index + 1, session_id)
                     if exam_data:
                         print(f"DEBUG: Creating exam for {exam_data['_course_code']}")
                         exam = self._create_exam(exam_data)
@@ -175,7 +175,7 @@ class ExcelService:
             'warnings': warnings
         }
     
-    def _process_row(self, row: pd.Series, department_id: int, row_number: int) -> Dict[str, Any]:
+    def _process_row(self, row: pd.Series, department_id: int, row_number: int, session_id: str = None) -> Dict[str, Any]:
         """Process a single Excel row"""
         try:
             # Extract basic data
@@ -222,6 +222,7 @@ class ExcelService:
                 'department_id': department_id,
                 'difficulty_level': difficulty_level,
                 'status': 'pending',
+                'exam_session_id': session_id,
                 # Store course_code for later use (not in Exam model)
                 '_course_code': course_code
             }

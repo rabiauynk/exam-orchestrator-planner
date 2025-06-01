@@ -87,10 +87,20 @@ class ExportService:
     def _get_department_schedule_data(self, department_id, start_date=None, end_date=None):
         """Get exam schedule data for a department"""
         try:
-            # Build query to get full ExamSchedule objects
+            # Get the latest session ID for this department
+            latest_session = db.session.query(Exam.exam_session_id).filter(
+                Exam.department_id == department_id,
+                Exam.exam_session_id.isnot(None)
+            ).order_by(Exam.created_at.desc()).first()
+
+            # Build query to get full ExamSchedule objects from latest session only
             query = db.session.query(ExamSchedule).join(Exam).join(Room).filter(
                 Exam.department_id == department_id
             )
+
+            # Filter by latest session if exists
+            if latest_session and latest_session[0]:
+                query = query.filter(Exam.exam_session_id == latest_session[0])
             
             # Apply date filters
             if start_date:

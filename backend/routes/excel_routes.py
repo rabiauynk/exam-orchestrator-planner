@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 
 from database import db
 from flask import Blueprint, jsonify, request
@@ -62,9 +63,32 @@ def upload_excel():
         file.save(file_path)
         
         try:
+            # Generate unique session ID for this upload
+            session_id = str(uuid.uuid4())
+
+            # Clear existing exams and schedules for this department before processing new file
+            from models import Exam, ExamSchedule
+
+            # Delete existing exam schedules first (due to foreign key constraints)
+            existing_schedules = db.session.query(ExamSchedule).join(Exam).filter(
+                Exam.department_id == int(department_id)
+            ).all()
+
+            for schedule in existing_schedules:
+                db.session.delete(schedule)
+
+            # Delete existing exams
+            existing_exams = Exam.query.filter_by(department_id=int(department_id)).all()
+            for exam in existing_exams:
+                db.session.delete(exam)
+
+            # Commit deletions
+            db.session.commit()
+            print(f"DEBUG: Cleared {len(existing_schedules)} schedules and {len(existing_exams)} exams for department {department_id}")
+
             # Process Excel file
             excel_service = ExcelService()
-            result = excel_service.process_excel_file(file_path, int(department_id))
+            result = excel_service.process_excel_file(file_path, int(department_id), session_id)
             
             if result['success']:
                 # Commit changes to database

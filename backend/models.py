@@ -65,6 +65,7 @@ class Exam(db.Model):
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=False)
     difficulty_level = db.Column(db.String(20), default='normal')  # easy, normal, hard, very_hard
     available_rooms = db.Column(db.JSON)  # Store as JSON array - rooms this department can use
+    exam_session_id = db.Column(db.String(50), nullable=True)  # To group exams by upload session
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
