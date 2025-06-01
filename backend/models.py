@@ -63,6 +63,8 @@ class Exam(db.Model):
     preferred_dates = db.Column(db.JSON)  # Store as JSON array
     status = db.Column(db.String(20), default='pending')  # pending, planned, completed
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'), nullable=False)
+    difficulty_level = db.Column(db.String(20), default='normal')  # easy, normal, hard, very_hard
+    available_rooms = db.Column(db.JSON)  # Store as JSON array - rooms this department can use
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -95,6 +97,7 @@ class ExamSchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     exam_id = db.Column(db.Integer, db.ForeignKey('exams.id'), nullable=False)
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'), nullable=False)
+    additional_rooms = db.Column(db.JSON, nullable=True)  # Store additional room IDs as JSON array
     scheduled_date = db.Column(db.Date, nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
@@ -165,6 +168,25 @@ class ExamScheduleSchema(ma.SQLAlchemyAutoSchema):
 
     exam = fields.Nested(ExamSchema, exclude=['exam_schedule'])
     room = fields.Nested(RoomSchema)
+    additional_rooms = fields.Raw()  # Include JSON field as-is
+    additional_room_details = fields.Method("get_additional_room_details")
+
+    def get_additional_room_details(self, obj):
+        """Get detailed information about additional rooms"""
+        if not obj.additional_rooms:
+            return []
+
+        room_details = []
+        for room_id in obj.additional_rooms:
+            room = Room.query.get(room_id)
+            if room:
+                room_details.append({
+                    'id': room.id,
+                    'name': room.name,
+                    'capacity': room.capacity,
+                    'has_computer': room.has_computer
+                })
+        return room_details
 
 class SettingsSchema(ma.SQLAlchemyAutoSchema):
     class Meta:

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiClient, type Department } from "@/lib/api";
@@ -11,7 +10,6 @@ import { toast } from "sonner";
 
 const Index = () => {
   const [department, setDepartment] = useState("");
-  const [password, setPassword] = useState("");
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -40,7 +38,7 @@ const Index = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (department && password) {
+    if (department) {
       // Seçilen bölümü localStorage'a kaydet
       const selectedDept = departments.find(d => d.id.toString() === department);
       if (selectedDept) {
@@ -51,7 +49,7 @@ const Index = () => {
         }));
       }
 
-      // Basit giriş kontrolü - gerçek uygulamada Supabase auth kullanılacak
+      // Dashboard'a yönlendir
       navigate("/dashboard");
     }
   };
@@ -65,15 +63,15 @@ const Index = () => {
               <GraduationCap className="h-8 w-8 text-white" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Sınav Planlama Sistemi</h1>
-          <p className="text-gray-600">Öğretim üyesi girişi</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Akıllı Sınav Planlama Sistemi</h1>
+          <p className="text-gray-600">Excel ile otomatik sınav programı oluşturun</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Giriş Yap</CardTitle>
+            <CardTitle>Bölüm Seçimi</CardTitle>
             <CardDescription>
-              Bölümünüzü seçin ve şifrenizi girin
+              Bölümünüzü seçin ve Excel dosyanızı yükleyerek otomatik sınav programı oluşturun
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -102,26 +100,14 @@ const Index = () => {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Şifre</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Şifrenizi girin"
-                  required
-                />
-              </div>
-
-              <Button type="submit" className="w-full" disabled={!department || !password || loading}>
+              <Button type="submit" className="w-full" disabled={!department || loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Yükleniyor...
                   </>
                 ) : (
-                  'Giriş Yap'
+                  'Devam Et'
                 )}
               </Button>
             </form>
@@ -132,11 +118,11 @@ const Index = () => {
           <div className="flex justify-center space-x-6 text-sm text-gray-500">
             <div className="flex items-center">
               <Calendar className="h-4 w-4 mr-1" />
-              Sınav Planlama
+              Excel Yükleme
             </div>
             <div className="flex items-center">
               <Users className="h-4 w-4 mr-1" />
-              Sınıf Yönetimi
+              Otomatik Planlama
             </div>
           </div>
         </div>

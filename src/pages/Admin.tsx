@@ -1,11 +1,12 @@
 import { ExamList } from "@/components/ExamList";
 import { ExamWeekSettings } from "@/components/ExamWeekSettings";
+import { ExcelUpload } from "@/components/ExcelUpload";
 import { ExportPanel } from "@/components/ExportPanel";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "@/lib/api";
-import { BarChart3, Download, List, Settings } from "lucide-react";
+import { BarChart3, Download, FileSpreadsheet, List, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const Admin = () => {
@@ -50,10 +51,14 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="exams" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[500px]">
+          <TabsList className="grid w-full grid-cols-5 lg:w-[600px]">
             <TabsTrigger value="exams" className="flex items-center gap-2">
               <List className="h-4 w-4" />
               Sınavlar
+            </TabsTrigger>
+            <TabsTrigger value="excel" className="flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel
             </TabsTrigger>
             <TabsTrigger value="export" className="flex items-center gap-2">
               <Download className="h-4 w-4" />
@@ -83,7 +88,25 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-
+          <TabsContent value="excel">
+            <Card>
+              <CardHeader>
+                <CardTitle>Excel ile Toplu Sınav Ekleme</CardTitle>
+                <CardDescription>
+                  Excel dosyası yükleyerek birden fazla sınavı aynı anda sisteme ekleyin ve otomatik planlama yapın
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ExcelUpload
+                  departmentId={1}
+                  onUploadComplete={(result) => {
+                    // Refresh stats after upload
+                    window.location.reload();
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="export">
             <Card>

@@ -18,13 +18,16 @@ def create_app(config_name=None):
     CORS(app, origins=app.config['CORS_ORIGINS'])
 
     # Initialize database
-    init_db(app)
+    db.init_app(app)
+    # init_db(app)  # Temporarily disabled
 
     # Register blueprints
     from routes.course_routes import course_bp
     from routes.department_routes import department_bp
     from routes.exam_routes import exam_bp
+    from routes.excel_routes import excel_bp
     from routes.export_routes import export_bp
+    from routes.room_routes import room_bp
     from routes.schedule_routes import schedule_bp
     from routes.settings_routes import settings_bp
 
@@ -34,6 +37,8 @@ def create_app(config_name=None):
     app.register_blueprint(course_bp)
     app.register_blueprint(settings_bp)
     app.register_blueprint(export_bp)
+    app.register_blueprint(excel_bp)
+    app.register_blueprint(room_bp)
 
     # Error handlers
     @app.errorhandler(404)

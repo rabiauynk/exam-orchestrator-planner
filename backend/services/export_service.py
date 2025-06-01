@@ -1,12 +1,14 @@
 import os
 import tempfile
 from datetime import datetime
+
 import pandas as pd
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils.dataframe import dataframe_to_rows
 from database import db
-from models import ExamSchedule, Exam, Department, Room
+from models import Department, Exam, ExamSchedule, Room
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils.dataframe import dataframe_to_rows
+
 
 class ExportService:
     def __init__(self):
@@ -85,19 +87,8 @@ class ExportService:
     def _get_department_schedule_data(self, department_id, start_date=None, end_date=None):
         """Get exam schedule data for a department"""
         try:
-            # Build query
-            query = db.session.query(
-                ExamSchedule.scheduled_date,
-                ExamSchedule.start_time,
-                ExamSchedule.end_time,
-                Exam.course_name,
-                Exam.class_name,
-                Exam.instructor,
-                Exam.student_count,
-                Exam.duration,
-                Exam.needs_computer,
-                Room.name.label('room_name')
-            ).join(Exam).join(Room).filter(
+            # Build query to get full ExamSchedule objects
+            query = db.session.query(ExamSchedule).join(Exam).join(Room).filter(
                 Exam.department_id == department_id
             )
             
@@ -116,20 +107,38 @@ class ExportService:
                 ExamSchedule.start_time.asc()
             ).all()
             
-            # Convert to list of dictionaries
+            # Convert to list of dictionaries with multi-room support
             data = []
             for schedule in schedules:
+                # Get all rooms for this schedule
+                rooms = [schedule.room.name]
+                total_capacity = schedule.room.capacity
+
+                # Add additional rooms if any
+                if schedule.additional_rooms:
+                    for room_id in schedule.additional_rooms:
+                        additional_room = Room.query.get(room_id)
+                        if additional_room:
+                            rooms.append(additional_room.name)
+                            total_capacity += additional_room.capacity
+
+                # Format room information
+                if len(rooms) > 1:
+                    room_info = f"{', '.join(rooms)} (Toplam: {total_capacity} kişi)"
+                else:
+                    room_info = f"{rooms[0]} ({total_capacity} kişi)"
+
                 data.append({
                     'Tarih': schedule.scheduled_date.strftime('%d/%m/%Y'),
                     'Başlangıç Saati': schedule.start_time.strftime('%H:%M'),
                     'Bitiş Saati': schedule.end_time.strftime('%H:%M'),
-                    'Ders Adı': schedule.course_name,
-                    'Sınıf': schedule.class_name,
-                    'Öğretim Görevlisi': schedule.instructor,
-                    'Öğrenci Sayısı': schedule.student_count,
-                    'Süre (dk)': schedule.duration,
-                    'Bilgisayar Gerekli': 'Evet' if schedule.needs_computer else 'Hayır',
-                    'Sınıf/Lab': schedule.room_name
+                    'Ders Adı': schedule.exam.course_name,
+                    'Sınıf': schedule.exam.class_name,
+                    'Öğretim Görevlisi': schedule.exam.instructor,
+                    'Öğrenci Sayısı': schedule.exam.student_count,
+                    'Süre (dk)': schedule.exam.duration,
+                    'Bilgisayar Gerekli': 'Evet' if schedule.exam.needs_computer else 'Hayır',
+                    'Sınıf/Lab': room_info
                 })
             
             return data

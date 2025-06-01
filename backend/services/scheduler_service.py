@@ -121,26 +121,43 @@ class SchedulerService(AdvancedSchedulerService):
         }
 
     def _prioritize_exams_advanced(self, exams):
-        """Sort exams by priority with advanced rules"""
+        """Sort exams by priority with advanced rules based on difficulty level and duration"""
         def priority_key(exam):
             # Priority factors (higher values = higher priority):
-            # 1. Difficult exams (credits >= 4) - schedule first to avoid conflicts
-            # 2. Computer requirement (limited resources)
-            # 3. Student count (capacity constraints)
-            # 4. Duration (longer exams harder to fit)
+            # 1. Difficulty level (very_hard > hard > normal > easy)
+            # 2. Duration (longer exams harder to fit)
+            # 3. Computer requirement (limited resources)
+            # 4. Student count (capacity constraints)
             # 5. Fewer preferred dates (less flexibility)
 
-            difficulty_priority = 10 if exam.is_difficult else 0
+            # Difficulty level priority
+            difficulty_scores = {
+                'very_hard': 20,
+                'hard': 15,
+                'normal': 10,
+                'easy': 5
+            }
+            difficulty_priority = difficulty_scores.get(exam.difficulty_level, 10)
+
+            # Duration priority (longer exams get higher priority)
+            if exam.duration >= 120:
+                duration_priority = 8
+            elif exam.duration >= 90:
+                duration_priority = 6
+            elif exam.duration >= 60:
+                duration_priority = 4
+            else:
+                duration_priority = 2
+
             computer_priority = 5 if exam.needs_computer else 0
             student_priority = exam.student_count / 100  # Normalize to 0-5 range
-            duration_priority = exam.duration / 60  # Normalize to hours
 
             # Count valid preferred dates
             preferred_count = len(exam.preferred_dates) if exam.preferred_dates else 0
             flexibility_penalty = 5 - min(preferred_count, 5)  # Less flexibility = higher priority
 
-            return (difficulty_priority, computer_priority, student_priority,
-                   duration_priority, flexibility_penalty)
+            return (difficulty_priority, duration_priority, computer_priority,
+                   student_priority, flexibility_penalty)
 
         return sorted(exams, key=priority_key, reverse=True)
 
@@ -217,8 +234,8 @@ class SchedulerService(AdvancedSchedulerService):
         if not self._check_time_slot_rules(target_date, start_time, end_time):
             return False
 
-        # Rule 2: Check difficult exam constraints
-        if not self._check_difficult_exam_rules(exam, target_date, daily_schedules):
+        # Rule 2: Check difficulty level constraints
+        if not self._check_difficulty_level_rules(exam, target_date, daily_schedules):
             return False
 
         # Rule 3: Check class level conflicts

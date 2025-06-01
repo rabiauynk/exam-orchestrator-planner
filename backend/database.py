@@ -31,14 +31,23 @@ def init_db(app):
             for dept in departments:
                 db.session.add(dept)
 
+            # Commit departments first so they get IDs
+            db.session.commit()
+
         # Add default rooms if none exist
         if Room.query.count() == 0:
             rooms = [
-                Room(name="BM-101", capacity=60, has_computer=False, department_id=1),
-                Room(name="BM-102", capacity=50, has_computer=False, department_id=1),
-                Room(name="BM-201", capacity=45, has_computer=True, department_id=1),
-                Room(name="BM-Lab1", capacity=30, has_computer=True, department_id=1),
-                Room(name="BM-Lab2", capacity=25, has_computer=True, department_id=1),
+                # Excel'de kullanılan room isimleri
+                Room(name="A401", capacity=120, has_computer=False, department_id=1),
+                Room(name="D111", capacity=30, has_computer=True, department_id=1),
+                Room(name="D112", capacity=40, has_computer=False, department_id=1),
+                Room(name="D114", capacity=35, has_computer=False, department_id=1),
+                Room(name="D115", capacity=45, has_computer=False, department_id=1),
+                Room(name="D117", capacity=50, has_computer=False, department_id=1),
+                Room(name="D108", capacity=25, has_computer=True, department_id=1),
+                Room(name="D109", capacity=20, has_computer=False, department_id=1),
+                Room(name="Z09", capacity=35, has_computer=True, department_id=1),
+                # Diğer bölümler için
                 Room(name="EM-101", capacity=70, has_computer=False, department_id=2),
                 Room(name="EM-102", capacity=65, has_computer=False, department_id=2),
                 Room(name="EE-101", capacity=55, has_computer=False, department_id=3),
@@ -48,6 +57,9 @@ def init_db(app):
             ]
             for room in rooms:
                 db.session.add(room)
+
+        # Commit rooms before checking other tables
+        db.session.commit()
 
         # Add default settings if none exist
         if Settings.query.count() == 0:

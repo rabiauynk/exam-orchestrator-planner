@@ -1,9 +1,10 @@
-from flask import Blueprint, request, jsonify, send_file
-from database import db
-from models import ExamSchedule, Exam, Department, Room
-from services.export_service import ExportService
 import os
 import tempfile
+
+from database import db
+from flask import Blueprint, jsonify, request, send_file
+from models import Department, Exam, ExamSchedule, Room
+from services.export_service import ExportService
 
 export_bp = Blueprint('export', __name__)
 
@@ -162,9 +163,28 @@ def preview_department_export(department_id):
             ExamSchedule.start_time.asc()
         ).all()
         
-        # Format data for preview
+        # Format data for preview with multi-room support
         preview_data = []
         for schedule in schedules:
+            # Get all rooms for this schedule
+            rooms = [schedule.room.name]
+            total_capacity = schedule.room.capacity
+
+            # Add additional rooms if any
+            if schedule.additional_rooms:
+                from models import Room
+                for room_id in schedule.additional_rooms:
+                    additional_room = Room.query.get(room_id)
+                    if additional_room:
+                        rooms.append(additional_room.name)
+                        total_capacity += additional_room.capacity
+
+            # Format room information
+            if len(rooms) > 1:
+                room_info = f"{', '.join(rooms)} (Toplam: {total_capacity} kişi)"
+            else:
+                room_info = f"{rooms[0]} ({total_capacity} kişi)"
+
             preview_data.append({
                 'date': schedule.scheduled_date.strftime('%d/%m/%Y'),
                 'start_time': schedule.start_time.strftime('%H:%M'),
@@ -174,7 +194,7 @@ def preview_department_export(department_id):
                 'instructor': schedule.exam.instructor,
                 'student_count': schedule.exam.student_count,
                 'duration': schedule.exam.duration,
-                'room_name': schedule.room.name,
+                'room_name': room_info,
                 'needs_computer': 'Evet' if schedule.exam.needs_computer else 'Hayır'
             })
         

@@ -60,6 +60,8 @@ interface ExamSchedule {
   id: number;
   exam_id: number;
   room_id: number;
+  additional_rooms?: number[];
+  additional_room_details?: Room[];
   scheduled_date: string;
   start_time: string;
   end_time: string;

@@ -1,15 +1,23 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { ExamList } from "@/components/ExamList";
+import { ExcelUpload } from "@/components/ExcelUpload";
+import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ExamForm } from "@/components/ExamForm";
-import { ExamList } from "@/components/ExamList";
-import { Navbar } from "@/components/Navbar";
-import { Calendar, Plus, List } from "lucide-react";
+import { Calendar, FileSpreadsheet } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("add");
+  const [activeTab, setActiveTab] = useState("upload");
+  const [selectedDepartment, setSelectedDepartment] = useState<any>(null);
+
+  useEffect(() => {
+    // Get selected department from localStorage
+    const dept = localStorage.getItem('selectedDepartment');
+    if (dept) {
+      setSelectedDepartment(JSON.parse(dept));
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -17,45 +25,69 @@ const Dashboard = () => {
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Sınav Yönetimi</h1>
-          <p className="text-gray-600">Sınavlarınızı ekleyin ve planlamalarını görüntüleyin</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Sınav Planlama Sistemi
+            {selectedDepartment && (
+              <span className="text-lg font-normal text-blue-600 ml-2">
+                - {selectedDepartment.name}
+              </span>
+            )}
+          </h1>
+          <p className="text-gray-600">Excel dosyası yükleyerek otomatik sınav programı oluşturun</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:w-96">
-            <TabsTrigger value="add" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Sınav Ekle
+            <TabsTrigger value="upload" className="flex items-center gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Excel Yükle
             </TabsTrigger>
-            <TabsTrigger value="list" className="flex items-center gap-2">
-              <List className="h-4 w-4" />
-              Sınav Listesi
+            <TabsTrigger value="schedule" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Sınav Programı
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="add">
+          <TabsContent value="upload">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Yeni Sınav Ekle
+                  <FileSpreadsheet className="h-5 w-5" />
+                  Excel ile Toplu Sınav Ekleme
                 </CardTitle>
                 <CardDescription>
-                  Sınav bilgilerini girin, sistem otomatik olarak en uygun zamanı planlayacak
+                  Excel dosyanızı yükleyin, sistem otomatik olarak zorluk seviyesi ve sınav süresine göre en uygun programı oluşturacak
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ExamForm />
+                {selectedDepartment ? (
+                  <ExcelUpload
+                    departmentId={selectedDepartment.id}
+                    onUploadComplete={(result) => {
+                      // Switch to schedule tab after successful upload
+                      if (result.success) {
+                        setActiveTab("schedule");
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    Lütfen önce bir bölüm seçin
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="list">
+          <TabsContent value="schedule">
             <Card>
               <CardHeader>
-                <CardTitle>Sınav Listesi ve Planlama</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Oluşturulan Sınav Programı
+                </CardTitle>
                 <CardDescription>
-                  Eklenen sınavlar ve planlanan zamanlar
+                  Otomatik olarak oluşturulan sınav programınızı görüntüleyin
                 </CardDescription>
               </CardHeader>
               <CardContent>

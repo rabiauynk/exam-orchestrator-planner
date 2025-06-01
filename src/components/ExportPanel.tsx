@@ -78,15 +78,23 @@ export const ExportPanel = () => {
       startTimeInfo = schedule.start_time;
       endTimeInfo = schedule.end_time;
 
-      // Tüm sınıfları birleştir
-      roomInfo = exam.exam_schedules.map(s => s.room?.name || 'Bilinmiyor').join(', ');
+      // Ana sınıf
+      const rooms = [schedule.room?.name || 'Bilinmiyor'];
+      let totalCapacity = schedule.room?.capacity || 0;
 
-      // Çoklu sınıfsa kapasiteleri de ekle
-      if (exam.exam_schedules.length > 1) {
-        const roomDetails = exam.exam_schedules.map(s =>
-          `${s.room?.name || 'Bilinmiyor'}(${s.room?.capacity || '?'})`
-        ).join(', ');
-        roomInfo = `${roomDetails} [${exam.exam_schedules.length} sınıf]`;
+      // Ek sınıfları ekle
+      if (schedule.additional_room_details && schedule.additional_room_details.length > 0) {
+        schedule.additional_room_details.forEach(room => {
+          rooms.push(room.name);
+          totalCapacity += room.capacity;
+        });
+      }
+
+      // Sınıf bilgisini formatla
+      if (rooms.length > 1) {
+        roomInfo = `${rooms.join(', ')} (Toplam: ${totalCapacity} kişi)`;
+      } else {
+        roomInfo = `${rooms[0]} (${totalCapacity} kişi)`;
       }
     }
 

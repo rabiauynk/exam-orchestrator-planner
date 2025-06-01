@@ -157,6 +157,11 @@ export const ExamList = () => {
                           </div>
                           <div className="text-xs text-gray-500">
                             📍 {schedule.room?.name}
+                            {schedule.additional_room_details && schedule.additional_room_details.length > 0 && (
+                              <span className="text-blue-600 font-medium">
+                                {' '}+ {schedule.additional_room_details.map(room => room.name).join(', ')}
+                              </span>
+                            )}
                           </div>
                         </div>
                       ))}
