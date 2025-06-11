@@ -1,10 +1,11 @@
-
 import { ExamList } from "@/components/ExamList";
 import { ExcelUpload } from "@/components/ExcelUpload";
+import { ExportPanel } from "@/components/ExportPanel";
+import { ExamWeekSettings } from "@/components/ExamWeekSettings";
 import { Navbar } from "@/components/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, FileSpreadsheet } from "lucide-react";
+import { Calendar, FileSpreadsheet, Download, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const Dashboard = () => {
@@ -37,7 +38,7 @@ const Dashboard = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:w-96">
+          <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4" />
               Excel Yükle
@@ -45,6 +46,14 @@ const Dashboard = () => {
             <TabsTrigger value="schedule" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Sınav Programı
+            </TabsTrigger>
+            <TabsTrigger value="export" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Excel İndir
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Ayarlar
             </TabsTrigger>
           </TabsList>
 
@@ -92,6 +101,46 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <ExamList />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="export">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5" />
+                  Excel Dışa Aktarım
+                </CardTitle>
+                <CardDescription>
+                  Sınav programınızı Excel formatında indirin
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {selectedDepartment ? (
+                  <ExportPanel />
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    Lütfen önce bir bölüm seçin
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Sınav Haftası Ayarları
+                </CardTitle>
+                <CardDescription>
+                  Sınav haftası tarihlerini belirleyin
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ExamWeekSettings />
               </CardContent>
             </Card>
           </TabsContent>

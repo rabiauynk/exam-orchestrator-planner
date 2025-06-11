@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Home, LogOut, Shield } from "lucide-react";
+import { GraduationCap, Home, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -46,14 +46,6 @@ export const Navbar = () => {
               >
                 <Home className="h-4 w-4" />
                 Dashboard
-              </Button>
-              <Button
-                variant={location.pathname === "/admin" ? "default" : "ghost"}
-                onClick={() => navigate("/admin")}
-                className="flex items-center gap-2"
-              >
-                <Shield className="h-4 w-4" />
-                Admin
               </Button>
             </div>
           </div>

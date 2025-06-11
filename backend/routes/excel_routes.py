@@ -187,6 +187,7 @@ def download_template():
         template_data = {
             'Sınıf Seviyesi': [1, 2, 3, 4],
             'Ders Kodu': ['MAT101', 'FIZ201', 'BIL301', 'MUH401'],
+            'Ders Adı': ['Matematik I', 'Fizik II', 'Bilgisayar Programlama', 'Mühendislik Tasarımı'],
             'Öğretim Üyesi': ['Dr. Ahmet Yılmaz', 'Prof. Dr. Ayşe Demir', 'Doç. Dr. Mehmet Kaya', 'Dr. Fatma Özkan'],
             'Öğrenci Sayısı': [45, 38, 52, 28],
             'Sınav Süresi (dakika)': [90, 120, 90, 120],

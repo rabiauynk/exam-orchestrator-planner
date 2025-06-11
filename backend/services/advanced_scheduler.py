@@ -9,40 +9,58 @@ class AdvancedSchedulerService:
     """Advanced scheduler with comprehensive constraint checking"""
     
     def __init__(self):
-        # Define valid time slots with 15-minute gaps
-        # Excluding 12:15-13:00 (lunch break)
-        self.time_slots = [
-            (time(8, 30), time(10, 0)),   # 08:30-10:00
-            (time(10, 15), time(11, 45)), # 10:15-11:45
-            (time(13, 0), time(14, 30)),  # 13:00-14:30
-            (time(14, 45), time(16, 15)), # 14:45-16:15
-            (time(16, 30), time(18, 0)),  # 16:30-18:00
-        ]
+        # Define working hours
+        self.working_hours_start = time(9, 0)  # 09:00 AM
+        self.working_hours_end = time(17, 0)   # 05:00 PM
         
-        # Friday special time slots (excluding 12:00-13:30)
-        self.friday_time_slots = [
-            (time(8, 30), time(10, 0)),   # 08:30-10:00
-            (time(10, 15), time(11, 45)), # 10:15-11:45
-            (time(13, 30), time(15, 0)),  # 13:30-15:00
-            (time(15, 15), time(16, 45)), # 15:15-16:45
-            (time(17, 0), time(18, 30)),  # 17:00-18:30
-        ]
+        # Lunch break
+        self.lunch_break_start = time(12, 15)
+        self.lunch_break_end = time(13, 0)
+        
+        # Friday prayer time
+        self.friday_prayer_start = time(12, 0)
+        self.friday_prayer_end = time(13, 30)
+
+        # Time slot generation parameters for flexible scheduling
+        self.time_slot_interval = 15  # Generate time slots every 15 minutes
+
+    def _generate_possible_start_times(self, target_date, exam_duration):
+        """Generate all possible start times for an exam on a given date"""
+        possible_times = []
+
+        # Start from working hours start
+        current_time = self.working_hours_start
+
+        while current_time < self.working_hours_end:
+            # Calculate end time for this start time
+            end_time = (datetime.combine(target_date, current_time) +
+                       timedelta(minutes=exam_duration)).time()
+
+            # Check if exam would end within working hours
+            if end_time <= self.working_hours_end:
+                # Check basic time slot rules (lunch break, prayer time)
+                if self._check_time_slot_rules(target_date, current_time, end_time):
+                    possible_times.append(current_time)
+
+            # Move to next time slot (15 minute intervals)
+            current_time = (datetime.combine(target_date, current_time) +
+                           timedelta(minutes=self.time_slot_interval)).time()
+
+        return possible_times
     
     def _check_time_slot_rules(self, target_date, start_time, end_time):
         """Check time slot constraints"""
-        # Rule 1: No exams during 12:15-13:00
-        forbidden_start = time(12, 15)
-        forbidden_end = time(13, 0)
-        
-        if (start_time < forbidden_end and end_time > forbidden_start):
+        # Check if exam is within working hours
+        if start_time < self.working_hours_start or end_time > self.working_hours_end:
             return False
         
-        # Rule 2: Friday 12:00-13:30 restriction
+        # Rule 1: No exams during lunch break
+        if (start_time < self.lunch_break_end and end_time > self.lunch_break_start):
+            return False
+        
+        # Rule 2: Friday prayer time restriction
         if target_date.weekday() == 4:  # Friday
-            friday_forbidden_start = time(12, 0)
-            friday_forbidden_end = time(13, 30)
-            
-            if (start_time < friday_forbidden_end and end_time > friday_forbidden_start):
+            if (start_time < self.friday_prayer_end and end_time > self.friday_prayer_start):
                 return False
         
         return True
@@ -433,21 +451,18 @@ class AdvancedSchedulerService:
             }
 
     def _try_schedule_exam_on_date(self, exam, target_date, daily_schedules):
-        """Try to schedule an exam on a specific date"""
-        # Get appropriate time slots for the day
-        time_slots = self.friday_time_slots if target_date.weekday() == 4 else self.time_slots
+        """Try to schedule an exam on a specific date with flexible timing"""
+        # Generate all possible start times for this exam duration
+        possible_start_times = self._generate_possible_start_times(target_date, exam.duration)
 
-        # Try each time slot
-        for start_time, _ in time_slots:
+        # Try each possible start time
+        for start_time in possible_start_times:
             # Calculate end time based on exam duration
             duration_minutes = exam.duration
             end_time = (datetime.combine(target_date, start_time) +
                        timedelta(minutes=duration_minutes)).time()
 
             # Check all constraints
-            if not self._check_time_slot_rules(target_date, start_time, end_time):
-                continue
-
             if not self._check_difficulty_level_rules(exam, target_date, daily_schedules):
                 continue
 
@@ -467,3 +482,5 @@ class AdvancedSchedulerService:
                 return True
 
         return False
+
+

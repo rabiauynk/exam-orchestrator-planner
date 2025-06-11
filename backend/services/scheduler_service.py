@@ -7,24 +7,17 @@ from services.advanced_scheduler import AdvancedSchedulerService
 
 class SchedulerService(AdvancedSchedulerService):
     def __init__(self):
-        # Define valid time slots with 15-minute gaps
-        # Excluding 12:15-13:00 (lunch break)
-        self.time_slots = [
-            (time(8, 30), time(10, 0)),   # 08:30-10:00
-            (time(10, 15), time(11, 45)), # 10:15-11:45
-            (time(13, 0), time(14, 30)),  # 13:00-14:30
-            (time(14, 45), time(16, 15)), # 14:45-16:15
-            (time(16, 30), time(18, 0)),  # 16:30-18:00
-        ]
-
-        # Friday special time slots (excluding 12:00-13:30)
-        self.friday_time_slots = [
-            (time(8, 30), time(10, 0)),   # 08:30-10:00
-            (time(10, 15), time(11, 45)), # 10:15-11:45
-            (time(13, 30), time(15, 0)),  # 13:30-15:00
-            (time(15, 15), time(16, 45)), # 15:15-16:45
-            (time(17, 0), time(18, 30)),  # 17:00-18:30
-        ]
+        # Define working hours
+        self.working_hours_start = time(9, 0)  # 09:00 AM
+        self.working_hours_end = time(17, 0)   # 05:00 PM
+        
+        # Lunch break
+        self.lunch_break_start = time(12, 15)
+        self.lunch_break_end = time(13, 0)
+        
+        # Friday prayer time
+        self.friday_prayer_start = time(12, 0)
+        self.friday_prayer_end = time(13, 30)
 
     def generate_schedule(self, force_regenerate=False, department_id=None):
         """Generate automatic schedule for pending exams with advanced rules"""
@@ -162,19 +155,22 @@ class SchedulerService(AdvancedSchedulerService):
         return sorted(exams, key=priority_key, reverse=True)
 
     def _schedule_exam_advanced(self, exam, exam_week, daily_schedules):
-        """Try to schedule a single exam with advanced constraint checking"""
-        # Get preferred dates or use exam week range
+        """Try to schedule a single exam with advanced constraints"""
+        # Get valid preferred dates
         preferred_dates = self._get_valid_preferred_dates(exam, exam_week)
-
+        
+        if not preferred_dates:
+            return False, "No valid preferred dates within exam week"
+        
         # Try to find a suitable slot
         for target_date in preferred_dates:
-            # Get appropriate time slots for the day
-            time_slots = self._get_time_slots_for_date(target_date)
-
-            for start_time, _ in time_slots:
+            # Get possible start times for this date
+            possible_start_times = self._get_possible_start_times(target_date, exam.duration)
+            
+            for start_time in possible_start_times:
                 # Calculate actual end time based on exam duration
                 end_time = self._calculate_end_time(start_time, exam.duration)
-
+                
                 # Check all constraints
                 if self._check_all_constraints(exam, target_date, start_time, end_time, daily_schedules):
                     # Find suitable rooms
@@ -184,7 +180,7 @@ class SchedulerService(AdvancedSchedulerService):
                         success = self._create_exam_schedule(exam, rooms, target_date, start_time, end_time, daily_schedules)
                         if success:
                             return True, "Successfully scheduled"
-
+        
         return False, "No suitable time slot found that satisfies all constraints"
 
     def _get_valid_preferred_dates(self, exam, exam_week):
@@ -352,3 +348,5 @@ class SchedulerService(AdvancedSchedulerService):
         ).first()
 
         return overlapping is None
+
+

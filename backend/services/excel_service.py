@@ -15,6 +15,7 @@ class ExcelService:
         self.required_columns = [
             'Sınıf Seviyesi',
             'Ders Kodu',
+            'Ders Adı',
             'Öğretim Üyesi',
             'Öğrenci Sayısı',
             'Sınav Süresi (dakika)',
