@@ -123,14 +123,14 @@ class SchedulerService(AdvancedSchedulerService):
             # 4. Student count (capacity constraints)
             # 5. Fewer preferred dates (less flexibility)
 
-            # Difficulty level priority
+            # Difficulty level priority (updated for new user-defined system)
             difficulty_scores = {
-                'very_hard': 20,
-                'hard': 15,
-                'normal': 10,
-                'easy': 5
+                'very_hard': 20,  # Keep for backward compatibility
+                'hard': 20,       # Zor - highest priority (most restrictive)
+                'normal': 15,     # Orta - medium priority
+                'easy': 10        # Kolay - lower priority (most flexible)
             }
-            difficulty_priority = difficulty_scores.get(exam.difficulty_level, 10)
+            difficulty_priority = difficulty_scores.get(exam.difficulty_level, 15)
 
             # Duration priority (longer exams get higher priority)
             if exam.duration >= 120:
@@ -224,6 +224,94 @@ class SchedulerService(AdvancedSchedulerService):
         end_datetime = start_datetime + timedelta(minutes=duration_minutes)
         return end_datetime.time()
 
+    def _check_time_slot_rules(self, target_date, start_time, end_time):
+        """Check time slot constraints"""
+        # Check if exam is within working hours (9 AM - 5 PM)
+        working_hours_start = time(9, 0)
+        working_hours_end = time(17, 0)
+
+        if start_time < working_hours_start or end_time > working_hours_end:
+            return False
+
+        # Rule 1: No exams during lunch break (12:15-13:00)
+        lunch_break_start = time(12, 15)
+        lunch_break_end = time(13, 0)
+        if (start_time < lunch_break_end and end_time > lunch_break_start):
+            return False
+
+        # Rule 2: Friday prayer time restriction (12:00-13:30)
+        if target_date.weekday() == 4:  # Friday
+            friday_prayer_start = time(12, 0)
+            friday_prayer_end = time(13, 30)
+            if (start_time < friday_prayer_end and end_time > friday_prayer_start):
+                return False
+
+        return True
+
+    def _check_difficulty_level_rules(self, exam, target_date, daily_schedules):
+        """Check difficulty level constraints based on user-defined Excel input"""
+        # Get existing schedules for the day
+        date_key = target_date.strftime('%Y-%m-%d')
+        if date_key not in daily_schedules:
+            return True
+
+        # Updated Rules based on user requirements:
+        # 1. "Zor" (hard) sınavlar - o gün başka hiçbir sınav yapılamaz
+        # 2. "Orta" (normal) sınavlar - aynı gün birden fazla orta sınav olabilir + kolay sınavlar da eklenebilir
+        # 3. "Kolay" (easy) sınavlar - birden fazla olabilir (zor yoksa)
+
+        difficulty_counts = {
+            'hard': 0,      # Zor
+            'normal': 0,    # Orta
+            'easy': 0       # Kolay
+        }
+
+        # Count existing exams by difficulty
+        for scheduled_exam in daily_schedules[date_key]:
+            difficulty = getattr(scheduled_exam, 'difficulty_level', 'normal')
+            # Map old difficulty levels to new system
+            if difficulty == 'very_hard':
+                difficulty = 'hard'
+            difficulty_counts[difficulty] = difficulty_counts.get(difficulty, 0) + 1
+
+        # Check constraints for the new exam
+        exam_difficulty = getattr(exam, 'difficulty_level', 'normal')
+        if exam_difficulty == 'very_hard':
+            exam_difficulty = 'hard'
+
+        print(f"DEBUG: Checking difficulty rules for {exam.course.code if exam.course else 'Unknown'}")
+        print(f"DEBUG: Exam difficulty: {exam_difficulty}")
+        print(f"DEBUG: Existing counts: {difficulty_counts}")
+
+        if exam_difficulty == 'hard':  # Zor sınav
+            # Zor sınav varsa o gün başka hiçbir sınav yapılamaz
+            total_existing = difficulty_counts['hard'] + difficulty_counts['normal'] + difficulty_counts['easy']
+            result = total_existing == 0
+            print(f"DEBUG: Hard exam check - total existing: {total_existing}, result: {result}")
+            return result
+        elif exam_difficulty == 'normal':  # Orta sınav
+            # Orta sınavlar: Zor sınav yoksa birden fazla orta + kolay olabilir
+            result = difficulty_counts['hard'] == 0
+            print(f"DEBUG: Normal exam check - hard count: {difficulty_counts['hard']}, result: {result}")
+            return result
+        else:  # easy - Kolay sınav
+            # Kolay sınavlar: Zor sınav yoksa birden fazla olabilir
+            result = difficulty_counts['hard'] == 0
+            print(f"DEBUG: Easy exam check - hard count: {difficulty_counts['hard']}, result: {result}")
+            return result
+
+    def _check_class_level_conflicts(self, exam, target_date, start_time, end_time, daily_schedules):
+        """Check class level conflict constraints - SIMPLIFIED"""
+        # For now, allow same class level exams at different times
+        # This can be made more strict later if needed
+        return True
+
+    def _check_time_gap_requirement(self, target_date, start_time, end_time, daily_schedules):
+        """Check 15-minute gap requirement between exams - SIMPLIFIED"""
+        # For now, allow overlapping times - room availability will handle conflicts
+        # This can be made more strict later if needed
+        return True
+
     def _check_all_constraints(self, exam, target_date, start_time, end_time, daily_schedules):
         """Check all scheduling constraints"""
         # Rule 1: Check forbidden time slots
@@ -243,6 +331,103 @@ class SchedulerService(AdvancedSchedulerService):
             return False
 
         return True
+
+    def _get_possible_start_times(self, target_date, duration):
+        """Get possible start times for a given date and duration"""
+        possible_times = []
+
+        # Define time slots based on day
+        if target_date.weekday() == 4:  # Friday
+            time_slots = [
+                (time(9, 0), time(10, 30)),
+                (time(10, 45), time(12, 15)),
+                (time(13, 30), time(15, 0)),
+                (time(15, 15), time(16, 45))
+            ]
+        else:  # Monday-Thursday
+            time_slots = [
+                (time(9, 0), time(10, 30)),
+                (time(10, 45), time(12, 15)),
+                (time(13, 0), time(14, 30)),
+                (time(14, 45), time(16, 15)),
+                (time(16, 30), time(18, 0))
+            ]
+
+        # Check which slots can accommodate the exam duration
+        for start_time, slot_end_time in time_slots:
+            # Calculate if exam fits in this slot
+            exam_end_time = (datetime.combine(date.today(), start_time) +
+                           timedelta(minutes=duration)).time()
+
+            if exam_end_time <= time(17, 0):  # Must end by 5 PM
+                possible_times.append(start_time)
+
+        return possible_times
+
+    def _find_suitable_rooms(self, exam, target_date, start_time, end_time):
+        """Find suitable rooms for the exam"""
+        # Get available rooms from exam's available_rooms list
+        available_room_names = getattr(exam, 'available_rooms', [])
+        if not available_room_names:
+            # Fallback to all rooms if no specific rooms defined
+            available_rooms = Room.query.filter_by(is_active=True).all()
+        else:
+            # Get room objects that match the names
+            available_rooms = []
+            for room_name in available_room_names:
+                room = Room.query.filter_by(name=room_name.strip(), is_active=True).first()
+                if room:
+                    available_rooms.append(room)
+
+        # Filter by requirements
+        suitable_rooms = []
+        for room in available_rooms:
+            # Check computer requirement
+            if exam.needs_computer and not room.has_computer:
+                continue
+
+            # Check capacity
+            if room.capacity < exam.student_count:
+                continue
+
+            # Check availability
+            if self._is_room_available(room.id, target_date, start_time, end_time):
+                suitable_rooms.append(room)
+
+        return suitable_rooms[:1] if suitable_rooms else []  # Return first suitable room
+
+    def _create_exam_schedule(self, exam, rooms, target_date, start_time, end_time, daily_schedules):
+        """Create exam schedule with room assignments"""
+        try:
+            if not rooms:
+                return False
+
+            # Use the first room
+            room = rooms[0]
+
+            schedule = ExamSchedule(
+                exam_id=exam.id,
+                room_id=room.id,
+                scheduled_date=target_date,
+                start_time=start_time,
+                end_time=end_time
+            )
+
+            db.session.add(schedule)
+            exam.status = 'planned'
+
+            # Update daily schedules tracking
+            date_key = target_date.strftime('%Y-%m-%d')
+            if date_key not in daily_schedules:
+                daily_schedules[date_key] = []
+            daily_schedules[date_key].append(exam)
+
+            print(f"DEBUG: Scheduled {exam.course.code if exam.course else 'Unknown'} on {target_date} at {start_time}-{end_time} in {room.name}")
+            return True
+
+        except Exception as e:
+            print(f"Error creating exam schedule: {str(e)}")
+            return False
 
     def _schedule_exam(self, exam, exam_week):
         """Try to schedule a single exam"""

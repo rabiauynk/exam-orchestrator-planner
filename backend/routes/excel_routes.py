@@ -191,6 +191,7 @@ def download_template():
             'Öğretim Üyesi': ['Dr. Ahmet Yılmaz', 'Prof. Dr. Ayşe Demir', 'Doç. Dr. Mehmet Kaya', 'Dr. Fatma Özkan'],
             'Öğrenci Sayısı': [45, 38, 52, 28],
             'Sınav Süresi (dakika)': [90, 120, 90, 120],
+            'Sınav Zorluğu': ['Kolay', 'Orta', 'Zor', 'Orta'],
             'Tercih 1': ['2024-01-15', '2024-01-16', '2024-01-17', '2024-01-18'],
             'Tercih 2': ['2024-01-16', '2024-01-17', '2024-01-18', '2024-01-19'],
             'Tercih 3': ['2024-01-17', '2024-01-18', '2024-01-19', '2024-01-22'],

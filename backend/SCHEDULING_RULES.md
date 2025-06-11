@@ -28,20 +28,34 @@ Bu dokümant, Exam Orchestrator sisteminde uygulanan gelişmiş sınav planlama 
 - 15:15-16:45
 - 17:00-18:30
 
-## 🧠 2. Zorluk (Kredi) Bazlı Kurallar
+## 🧠 2. Kullanıcı Tanımlı Zorluk Bazlı Kurallar
 
-### ✅ Zor Ders Tanımı
-- **Kredi ≥ 4** olan dersler "zor" kategorisinde kabul edilir
-- Bu dersler daha fazla konsantrasyon gerektirir
+### ✅ Zorluk Seviyesi Tanımı
+- **Excel'deki "Sınav Zorluğu" kolonundan** kullanıcı tarafından belirlenir
+- Kullanıcı her sınav için **"Kolay", "Orta", "Zor"** seçer
+- Otomatik hesaplama yapılmaz, tamamen kullanıcı kontrolündedir
 
-### ✅ Zor Ders Kısıtlamaları
-- **Aynı gün içinde sadece bir zor sınav** yapılabilir
-- Bu kural öğrenci performansını korumak için uygulanır
-- Zor sınavlar öncelikli olarak planlanır
+### ✅ Güncellenmiş Zorluk Kısıtlamaları
 
-### 📊 Kredi Seviyeleri
-- **1-3 Kredi**: Normal zorluk
-- **4+ Kredi**: Zor kategori (özel kısıtlamalar)
+#### 🔴 ZOR SINAVLAR
+- **O gün başka hiçbir sınav yapılamaz**
+- En yüksek öncelik ile planlanır
+- Öğrenci performansını korumak için tam izolasyon
+
+#### 🟡 ORTA SINAVLAR
+- **Aynı gün birden fazla orta sınav olabilir**
+- **Kolay sınavlar da eklenebilir**
+- Zor sınav varsa yapılamaz
+
+#### 🟢 KOLAY SINAVLAR
+- **Birden fazla olabilir**
+- **Orta sınavlarla birlikte olabilir**
+- Zor sınav varsa yapılamaz
+
+### 📊 Zorluk Seviyeleri
+- **Kolay**: Çoklu sınav günü uygun
+- **Orta**: Sınırlı çoklu sınav uygun
+- **Zor**: Tek sınav günü zorunlu
 
 ## 🧠 3. Çakışma Kuralları
 
@@ -93,17 +107,19 @@ Bu dokümant, Exam Orchestrator sisteminde uygulanan gelişmiş sınav planlama 
 ### 📊 Öncelik Sıralaması
 Sınavlar aşağıdaki öncelik sırasına göre planlanır:
 
-1. **Zor sınavlar** (kredi ≥ 4) - çakışma riskini azaltmak için
-2. **Bilgisayar gerektiren sınavlar** - sınırlı kaynak
-3. **Yüksek öğrenci sayısı** - kapasite kısıtları
-4. **Uzun süre** - zaman dilimi kısıtları
-5. **Az tercih** - daha az esneklik
+1. **Zor sınavlar** (kullanıcı tanımlı) - çakışma riskini azaltmak için
+2. **Orta sınavlar** (kullanıcı tanımlı) - orta öncelik
+3. **Kolay sınavlar** (kullanıcı tanımlı) - en esnek
+4. **Bilgisayar gerektiren sınavlar** - sınırlı kaynak
+5. **Yüksek öğrenci sayısı** - kapasite kısıtları
+6. **Uzun süre** - zaman dilimi kısıtları
+7. **Az tercih** - daha az esneklik
 
 ### 🔍 Kısıt Kontrolü Sırası
 Her sınav için aşağıdaki kontroller yapılır:
 
 1. **Zaman dilimi kuralları** (yasak saatler, Cuma kısıtları)
-2. **Zor sınav kuralları** (günde bir zor sınav)
+2. **Kullanıcı tanımlı zorluk kuralları** (Zor=tek, Orta=çoklu, Kolay=esnek)
 3. **Sınıf seviyesi çakışmaları** (aynı sınıf, aynı saat)
 4. **15 dakika boşluk** kuralı
 5. **Sınıf kapasitesi** ve bilgisayar gereksinimi
@@ -124,9 +140,10 @@ Her sınav için aşağıdaki kontroller yapılır:
 - `models.py`: Exam.is_difficult property'si
 
 ### 🔧 Konfigürasyon
-- Zor ders eşiği: `credits >= 4`
+- Zorluk belirleme: `Excel "Sınav Zorluğu" kolonu`
 - Minimum boşluk: `15 dakika`
 - Maksimum sınıf kombinasyonu: `3 sınıf`
+- Çalışma saatleri: `09:00-17:00`
 
 ### 📊 Performans Metrikleri
 - Başarılı planlama oranı

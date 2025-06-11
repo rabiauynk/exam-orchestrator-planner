@@ -66,43 +66,57 @@ class AdvancedSchedulerService:
         return True
     
     def _check_difficulty_level_rules(self, exam, target_date, daily_schedules):
-        """Check difficulty level constraints based on new difficulty system"""
+        """Check difficulty level constraints based on user-defined Excel input"""
         # Get existing schedules for the day
         date_key = target_date.strftime('%Y-%m-%d')
         if date_key not in daily_schedules:
             return True
 
-        # Rules based on difficulty level:
-        # 1. Only one very_hard exam per day
-        # 2. Maximum two hard exams per day
-        # 3. No more than three normal exams per day
-        # 4. Easy exams have no daily limit
+        # Updated Rules based on user requirements:
+        # 1. "Zor" (hard) sınavlar - o gün başka hiçbir sınav yapılamaz
+        # 2. "Orta" (normal) sınavlar - aynı gün birden fazla orta sınav olabilir + kolay sınavlar da eklenebilir
+        # 3. "Kolay" (easy) sınavlar - birden fazla olabilir (zor yoksa)
 
         difficulty_counts = {
-            'very_hard': 0,
-            'hard': 0,
-            'normal': 0,
-            'easy': 0
+            'hard': 0,      # Zor
+            'normal': 0,    # Orta
+            'easy': 0       # Kolay
         }
 
         # Count existing exams by difficulty
         for scheduled_exam in daily_schedules[date_key]:
             difficulty = getattr(scheduled_exam, 'difficulty_level', 'normal')
+            # Map old difficulty levels to new system
+            if difficulty == 'very_hard':
+                difficulty = 'hard'  # Map very_hard to hard
             difficulty_counts[difficulty] = difficulty_counts.get(difficulty, 0) + 1
 
         # Check constraints for the new exam
         exam_difficulty = getattr(exam, 'difficulty_level', 'normal')
-
+        # Map old difficulty levels to new system
         if exam_difficulty == 'very_hard':
-            return difficulty_counts['very_hard'] == 0
-        elif exam_difficulty == 'hard':
-            return difficulty_counts['hard'] < 2 and difficulty_counts['very_hard'] == 0
-        elif exam_difficulty == 'normal':
-            return (difficulty_counts['normal'] < 3 and
-                   difficulty_counts['hard'] == 0 and
-                   difficulty_counts['very_hard'] == 0)
-        else:  # easy
-            return True  # No restrictions for easy exams
+            exam_difficulty = 'hard'
+
+        print(f"DEBUG: Advanced scheduler - Checking difficulty rules for {exam.course.code if exam.course else 'Unknown'}")
+        print(f"DEBUG: Exam difficulty: {exam_difficulty}")
+        print(f"DEBUG: Existing counts: {difficulty_counts}")
+
+        if exam_difficulty == 'hard':  # Zor sınav
+            # Zor sınav varsa o gün başka hiçbir sınav yapılamaz
+            total_existing = difficulty_counts['hard'] + difficulty_counts['normal'] + difficulty_counts['easy']
+            result = total_existing == 0
+            print(f"DEBUG: Hard exam check - total existing: {total_existing}, result: {result}")
+            return result
+        elif exam_difficulty == 'normal':  # Orta sınav
+            # Orta sınavlar: Zor sınav yoksa birden fazla orta + kolay olabilir
+            result = difficulty_counts['hard'] == 0
+            print(f"DEBUG: Normal exam check - hard count: {difficulty_counts['hard']}, result: {result}")
+            return result
+        else:  # easy - Kolay sınav
+            # Kolay sınavlar: Zor sınav yoksa birden fazla olabilir
+            result = difficulty_counts['hard'] == 0
+            print(f"DEBUG: Easy exam check - hard count: {difficulty_counts['hard']}, result: {result}")
+            return result
     
     def _check_class_level_conflicts(self, exam, target_date, start_time, end_time, daily_schedules):
         """Check class level conflict constraints"""

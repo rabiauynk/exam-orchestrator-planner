@@ -19,28 +19,14 @@ class ExcelService:
             'Öğretim Üyesi',
             'Öğrenci Sayısı',
             'Sınav Süresi (dakika)',
+            'Sınav Zorluğu',
             'Tercih 1',
             'Tercih 2',
             'Tercih 3',
             'Bilgisayar Gerekli mi?',
             'Kullanılabilir Derslikler'
         ]
-        
-        # Difficulty mapping based on duration and class level
-        self.difficulty_mapping = {
-            (1, 60): 'easy',      # 1st class, 60 min
-            (1, 90): 'normal',    # 1st class, 90 min
-            (1, 120): 'normal',   # 1st class, 120 min
-            (2, 60): 'normal',    # 2nd class, 60 min
-            (2, 90): 'normal',    # 2nd class, 90 min
-            (2, 120): 'hard',     # 2nd class, 120 min
-            (3, 60): 'normal',    # 3rd class, 60 min
-            (3, 90): 'hard',      # 3rd class, 90 min
-            (3, 120): 'hard',     # 3rd class, 120 min
-            (4, 60): 'hard',      # 4th class, 60 min
-            (4, 90): 'hard',      # 4th class, 90 min
-            (4, 120): 'very_hard' # 4th class, 120 min
-        }
+
     
     def process_excel_file(self, file_path: str, department_id: int, session_id: str = None) -> Dict[str, Any]:
         """Process Excel file and create exams"""
@@ -137,8 +123,17 @@ class ExcelService:
             if pd.isna(row.get('Ders Kodu', '')) or str(row.get('Ders Kodu', '')).strip() == '':
                 errors.append(f'Satır {row_num}: Ders Kodu boş olamaz')
 
+            if pd.isna(row.get('Ders Adı', '')) or str(row.get('Ders Adı', '')).strip() == '':
+                errors.append(f'Satır {row_num}: Ders Adı boş olamaz')
+
             if pd.isna(row.get('Öğretim Üyesi', '')) or str(row.get('Öğretim Üyesi', '')).strip() == '':
                 errors.append(f'Satır {row_num}: Öğretim Üyesi boş olamaz')
+
+            # Check difficulty level
+            difficulty_input = str(row.get('Sınav Zorluğu', '')).strip().lower()
+            valid_difficulties = ['kolay', 'orta', 'zor', 'easy', 'normal', 'hard', 'medium']
+            if not difficulty_input or difficulty_input not in valid_difficulties:
+                errors.append(f'Satır {row_num}: Sınav Zorluğu "Kolay", "Orta" veya "Zor" olmalı')
 
             # Check numeric fields
             try:
@@ -182,10 +177,15 @@ class ExcelService:
             # Extract basic data
             class_level = int(row['Sınıf Seviyesi'])
             course_code = str(row['Ders Kodu']).strip()
+            course_name = str(row['Ders Adı']).strip()
             instructor = str(row['Öğretim Üyesi']).strip()
             student_count = int(row['Öğrenci Sayısı'])
             duration = int(row['Sınav Süresi (dakika)'])
-            
+
+            # Process difficulty level from user input
+            difficulty_input = str(row['Sınav Zorluğu']).strip().lower()
+            difficulty_level = self._parse_difficulty(difficulty_input)
+
             # Process computer requirement
             computer_req = str(row['Bilgisayar Gerekli mi?']).strip().lower()
             needs_computer = computer_req in ['evet', 'yes', 'true', '1']
@@ -207,10 +207,7 @@ class ExcelService:
             self._ensure_rooms_exist(available_rooms, department_id)
 
             # Find or create course
-            course = self._find_or_create_course(course_code, class_level, department_id)
-            
-            # Determine difficulty level
-            difficulty_level = self._determine_difficulty(class_level, duration)
+            course = self._find_or_create_course(course_code, course_name, class_level, department_id)
             
             return {
                 'course_id': course.id,
@@ -252,7 +249,25 @@ class ExcelService:
                 continue
         
         return parsed_dates
-    
+
+    def _parse_difficulty(self, difficulty_input: str) -> str:
+        """Parse difficulty level from user input"""
+        difficulty_mapping = {
+            'kolay': 'easy',
+            'easy': 'easy',
+            'orta': 'normal',
+            'normal': 'normal',
+            'medium': 'normal',
+            'zor': 'hard',
+            'hard': 'hard',
+            'çok zor': 'very_hard',
+            'very hard': 'very_hard',
+            'very_hard': 'very_hard'
+        }
+
+        normalized_input = difficulty_input.lower().strip()
+        return difficulty_mapping.get(normalized_input, 'normal')  # Default to normal if not found
+
     def _parse_rooms(self, rooms_str: str) -> List[str]:
         """Parse comma-separated room list"""
         if pd.isna(rooms_str):
@@ -313,18 +328,18 @@ class ExcelService:
 
         db.session.flush()  # Ensure rooms are created before continuing
     
-    def _find_or_create_course(self, course_code: str, class_level: int, department_id: int) -> Course:
+    def _find_or_create_course(self, course_code: str, course_name: str, class_level: int, department_id: int) -> Course:
         """Find existing course or create new one"""
         course = Course.query.filter_by(
             code=course_code,
             class_level=class_level,
             department_id=department_id
         ).first()
-        
+
         if not course:
-            # Create new course with default values
+            # Create new course with provided name
             course = Course(
-                name=f"Course {course_code}",
+                name=course_name,
                 code=course_code,
                 credits=3,  # Default credits
                 class_level=class_level,
@@ -333,45 +348,14 @@ class ExcelService:
             )
             db.session.add(course)
             db.session.flush()  # Get ID without committing
-        
+        else:
+            # Update course name if it's different
+            if course.name != course_name:
+                course.name = course_name
+
         return course
     
-    def _determine_difficulty(self, class_level: int, duration: int) -> str:
-        """Determine difficulty level based on class level and duration"""
-        # First check exact mapping
-        key = (class_level, duration)
-        if key in self.difficulty_mapping:
-            return self.difficulty_mapping[key]
-        
-        # Fallback logic for non-standard durations
-        if class_level == 1:
-            if duration <= 60:
-                return 'easy'
-            elif duration <= 90:
-                return 'normal'
-            else:
-                return 'normal'
-        elif class_level == 2:
-            if duration <= 60:
-                return 'normal'
-            elif duration <= 90:
-                return 'normal'
-            else:
-                return 'hard'
-        elif class_level == 3:
-            if duration <= 60:
-                return 'normal'
-            elif duration <= 90:
-                return 'hard'
-            else:
-                return 'hard'
-        else:  # class_level >= 4
-            if duration <= 60:
-                return 'hard'
-            elif duration <= 90:
-                return 'hard'
-            else:
-                return 'very_hard'
+
     
     def _create_exam(self, exam_data: Dict[str, Any]) -> Exam:
         """Create exam in database"""
